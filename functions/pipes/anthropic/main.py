@@ -3,7 +3,7 @@ title: Anthropic Manifold Pipe
 authors: justinh-rahb, christian-taillon, jfbloom22
 author_url: https://github.com/justinh-rahb
 funding_url: https://github.com/open-webui
-version: 0.3.0
+version: 0.4.0
 required_open_webui_version: 0.3.17
 license: MIT
 """
@@ -150,7 +150,7 @@ class Pipe:
         system_message, messages = pop_system_message(body["messages"])
 
         processed_messages = []
-        total_image_size = 0
+        total_image_size = 0.0
 
         for message in messages:
             processed_content = []
@@ -181,17 +181,40 @@ class Pipe:
                 {"role": message["role"], "content": processed_content}
             )
 
+        # Handle sampling parameters - Claude 4.5 doesn't allow both temperature and top_p
+        temperature = body.get("temperature", 0.8)
+        top_p = body.get("top_p", 0.9)
+
+        # If both are provided, prioritize temperature and ignore top_p
+        # This follows Anthropic's recommendation to use either temperature OR top_p, not both
+        if temperature != 0.8 and top_p != 0.9:
+            # Both parameters were explicitly provided, use temperature and ignore top_p
+            print("Warning: Both temperature and top_p provided for Claude model. Using temperature only.")
+        elif temperature == 0.8 and top_p == 0.9:
+            # Neither parameter was explicitly provided, use temperature as default
+            pass
+        elif temperature != 0.8:
+            # Only temperature was explicitly provided
+            pass
+        else:
+            # Only top_p was explicitly provided, use it instead of temperature
+            temperature = None
+
         payload = {
             "model": body["model"][body["model"].find(".") + 1 :],
             "messages": processed_messages,
             "max_tokens": body.get("max_tokens", 4096),
-            "temperature": body.get("temperature", 0.8),
             "top_k": body.get("top_k", 40),
-            "top_p": body.get("top_p", 0.9),
             "stop_sequences": body.get("stop", []),
             **({"system": str(system_message)} if system_message else {}),
             "stream": body.get("stream", False),
         }
+
+        # Only add temperature or top_p, never both
+        if temperature is not None:
+            payload["temperature"] = temperature
+        else:
+            payload["top_p"] = top_p
 
         headers = {
             "x-api-key": self.valves.ANTHROPIC_API_KEY,
