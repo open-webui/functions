@@ -23,9 +23,9 @@ class Pipe:
 
     class Valves(BaseModel):
         ANTHROPIC_API_KEY: str = Field(default="", description="Anthropic API Key")
-        CLAUDE_45_USE_TEMPERATURE: bool = Field(
+        CLAUDE_USE_TEMPERATURE: bool = Field(
             default=True,
-            description="For Claude 4.5: Use temperature (True) or top_p (False). Claude 4.5 only supports one.",
+            description="For Claude 4.x models: Use temperature (True) or top_p (False). Claude 4.x models only support one parameter.",
         )
         BETA_FEATURES: str = Field(
             default="",
@@ -50,7 +50,7 @@ class Pipe:
         self.valves = self.Valves(
             **{
                 "ANTHROPIC_API_KEY": os.getenv("ANTHROPIC_API_KEY", ""),
-                "CLAUDE_45_USE_TEMPERATURE": True,
+                "CLAUDE_USE_TEMPERATURE": True,  # Use temperature for Claude 4.x models
                 "BETA_FEATURES": "",
                 "ENABLE_THINKING": True,
                 "THINKING_BUDGET": 16000,
@@ -211,6 +211,30 @@ class Pipe:
                 self._attach_cache_control(block)
                 break
 
+    def _is_claude_4x_model(self, model_name: str) -> bool:
+        """
+        Determine if a model is a Claude 4.x generation model that has temperature/top_p constraints.
+        Uses a more future-proof approach than simple prefix matching.
+
+        Args:
+            model_name: The model name to check
+
+        Returns:
+            True if this is a Claude 4.x model with constraints
+        """
+        # Extract base model name (remove version suffixes and dates)
+        import re
+
+        # Pattern to match Claude 4.x models with various version suffixes
+        # Examples: claude-opus-4, claude-opus-4-20250514, claude-sonnet-4-5, claude-sonnet-4-5-20250929
+        pattern = r"^claude-(opus|sonnet)-4(?:-5)?(?:-\d{8})?$"
+
+        # Also check for any model that starts with claude- and contains -4- or -4$ (end of string)
+        # This covers patterns like: claude-opus-4-1-20250805, claude-sonnet-4-20250514, etc.
+        extended_pattern = r"^claude-.*-4(?:-\d{8})?$"
+
+        return bool(re.match(pattern, model_name) or re.match(extended_pattern, model_name))
+
     def pipes(self) -> List[dict]:
         return self.get_anthropic_models()
 
@@ -341,17 +365,20 @@ class Pipe:
             thinking_budget = max(1024, min(32000, self.valves.THINKING_BUDGET))
             payload["thinking"] = {"type": "enabled", "budget_tokens": thinking_budget}
 
-        # Handle temperature/top_p settings
-        if api_model_name.startswith("claude-sonnet-4-5"):
+        # Handle temperature/top_p settings based on model generation
+        # Claude 4.x models only support either temperature OR top_p, not both
+        is_claude_4x_model = self._is_claude_4x_model(api_model_name)
+
+        if is_claude_4x_model:
             if is_thinking_model:
                 # For thinking model, always use temperature = 1.0
                 payload["temperature"] = 1.0
-            elif self.valves.CLAUDE_45_USE_TEMPERATURE:
+            elif self.valves.CLAUDE_USE_TEMPERATURE:
                 payload["temperature"] = body.get("temperature", 0.8)
             else:
                 payload["top_p"] = body.get("top_p", 0.9)
         else:
-            # Other Claude models support both
+            # Other Claude models support both temperature and top_p
             payload["temperature"] = body.get("temperature", 0.8)
             payload["top_p"] = body.get("top_p", 0.9)
 
