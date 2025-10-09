@@ -222,18 +222,14 @@ class Pipe:
         Returns:
             True if this is a Claude 4.x model with constraints
         """
-        # Extract base model name (remove version suffixes and dates)
         import re
 
         # Pattern to match Claude 4.x models with various version suffixes
-        # Examples: claude-opus-4, claude-opus-4-20250514, claude-sonnet-4-5, claude-sonnet-4-5-20250929
-        pattern = r"^claude-(opus|sonnet)-4(?:-5)?(?:-\d{8})?$"
+        # Examples: claude-opus-4, claude-opus-4-1-20250805, claude-sonnet-4-5, claude-sonnet-4-5-20250929
+        # The pattern allows for optional sub-versions (like -1, -5) and dates
+        pattern = r"^claude-(opus|sonnet)-4(?:-\d+)?(?:-\d{8})?$"
 
-        # Also check for any model that starts with claude- and contains -4- or -4$ (end of string)
-        # This covers patterns like: claude-opus-4-1-20250805, claude-sonnet-4-20250514, etc.
-        extended_pattern = r"^claude-.*-4(?:-\d{8})?$"
-
-        return bool(re.match(pattern, model_name) or re.match(extended_pattern, model_name))
+        return bool(re.match(pattern, model_name))
 
     def pipes(self) -> List[dict]:
         return self.get_anthropic_models()
