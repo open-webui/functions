@@ -197,7 +197,7 @@ class Pipe:
     async def stream_response(self, payload):
         try:
             async with self.get_client().messages.stream(
-                model=payload["model"], max_tokens=payload["max_tokens"], messages=payload["messages"], tools=payload["tools"]
+                model=payload["model"], max_tokens=payload["max_tokens"], system=payload["system"], messages=payload["messages"], tools=payload["tools"]
             ) as stream:
                 input_json: str = ""
                 is_thinking: bool = False
@@ -228,7 +228,7 @@ class Pipe:
     async def non_stream_response(self, payload):
         try:
             resp = await self.get_client().messages.create(
-                model=payload["model"], max_tokens=payload["max_tokens"], messages=payload["messages"], tools=payload["tools"]
+                model=payload["model"], max_tokens=payload["max_tokens"], system=payload["system"], messages=payload["messages"], tools=payload["tools"]
             )
             return "\n".join([r.text if isinstance(r, TextBlock) else "" for r in resp.content])
         except Exception as e:
