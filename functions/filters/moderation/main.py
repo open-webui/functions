@@ -6,7 +6,7 @@ class Filter:
     class Valves(BaseModel):
         SCANNER_URL: str = Field(
             "http://localhost:8000/scan",
-            description="URL of the external prompt scan service",
+            description="URL of the external moderation service",
         )
 
     def __init__(self):
