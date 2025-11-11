@@ -187,5 +187,5 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
-# Mac OS
 .DS_Store
+.vscode
