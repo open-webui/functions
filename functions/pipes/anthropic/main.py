@@ -25,7 +25,7 @@ class Pipe:
         ANTHROPIC_API_KEY: str = Field(default="", description="Anthropic API Key")
         CLAUDE_USE_TEMPERATURE: bool = Field(
             default=True,
-            description="For Claude 4.x models: Use temperature (True) or top_p (False). Claude 4.x models only support one parameter.",
+            description="For Claude 4.x models (Opus 4, Sonnet 4.5, Haiku 3.5+): Use temperature (True) or top_p (False). Claude 4.x models only support one parameter.",
         )
         BETA_FEATURES: str = Field(
             default="",
@@ -225,11 +225,14 @@ class Pipe:
         import re
 
         # Pattern to match Claude 4.x models with various version suffixes
-        # Examples: claude-opus-4, claude-opus-4-1-20250805, claude-sonnet-4-5, claude-sonnet-4-5-20250929
+        # Examples: claude-opus-4, claude-opus-4-1-20250805, claude-sonnet-4-5, claude-sonnet-4-5-20250929, claude-3-5-haiku-latest
         # The pattern allows for optional sub-versions (like -1, -5) and dates
-        pattern = r"^claude-(opus|sonnet)-4(?:-\d+)?(?:-\d{8})?$"
+        pattern = r"^claude-(opus|sonnet|haiku)-4(?:-\d+)?(?:-\d{8})?$"
+        
+        # Also match the latest haiku variants (claude-3-5-haiku-latest is actually Claude 4.x generation)
+        haiku_pattern = r"^claude-3-5-haiku"
 
-        return bool(re.match(pattern, model_name))
+        return bool(re.match(pattern, model_name)) or bool(re.match(haiku_pattern, model_name))
 
     def pipes(self) -> List[dict]:
         return self.get_anthropic_models()
