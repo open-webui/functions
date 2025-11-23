@@ -1,0 +1,4 @@
+fastapi
+pydantic
+llm-guard
+uvicorn
