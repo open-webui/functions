@@ -4,7 +4,7 @@ author: open-webui, atgehrhardt,
     credits to @iamg30 for v0.1.5-v0.1.7 updates
 author_url: https://github.com/open-webui
 funding_url: https://github.com/open-webui
-version: 0.1.7
+version: 0.1.8
 required_open_webui_version: 0.3.8
 """
 
@@ -83,6 +83,17 @@ class Filter:
                 has_images = any(
                     item.get("type") == "image_url" for item in user_message_content
                 )
+
+        # check for all history
+        if not has_images:
+            for m in messages:
+                user_message_content = m.get("content")
+                if user_message_content is not None and isinstance(
+                    user_message_content, list
+                ):
+                    has_images = any(
+                        item.get("type") == "image_url" for item in user_message_content
+                    )
 
         if has_images:
             if self.valves.vision_model_id:
