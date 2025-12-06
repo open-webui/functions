@@ -164,7 +164,7 @@ class Pipe:
             "top_k": body.get("top_k", 40),
             # "top_p": body.get("top_p", 0.9),
             "stop_sequences": body.get("stop", []),
-            **({"system": str(system_message)} if system_message else {}),
+            "system": str(system_message) if system_message else "",
             "stream": body.get("stream", False),
         }
         payload["tools"] = (
@@ -210,8 +210,8 @@ class Pipe:
                             input_json = ""
                         elif event.content_block.type == "text":
                             if is_thinking:
-                                yield "</think>"
                                 is_thinking = False
+                                yield "</think>"
                     elif event.type == "content_block_stop":
                         if event.content_block.type == "server_tool_use" or event.content_block.type == "tool_use":
                             input_params = ", ".join([f"{key}: {value}" for key, value in json.loads(input_json).items()])
