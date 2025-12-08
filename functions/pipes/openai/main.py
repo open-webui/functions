@@ -96,14 +96,7 @@ class Pipe:
             if image_size > self.MAX_IMAGE_SIZE:
                 raise ValueError(f"Image size exceeds 5MB limit: {image_size / (1024 * 1024):.2f}MB")
 
-            return {
-                "type": "image",
-                "source": {
-                    "type": "base64",
-                    "media_type": media_type,
-                    "data": base64_data,
-                },
-            }
+            return {"type": "input_image", "image_url": f"{mime_type},{base64_data}"}
         else:
             # For URL images, perform size check after fetching
             url = image_data["image_url"]["url"]
@@ -114,7 +107,7 @@ class Pipe:
                 raise ValueError(f"Image at URL exceeds 5MB limit: {content_length / (1024 * 1024):.2f}MB")
 
             return {
-                "type": "image",
+                "type": "input_image",
                 "source": {"type": "url", "url": url},
             }
 
@@ -129,19 +122,18 @@ class Pipe:
             if isinstance(message.get("content"), list):
                 for item in message["content"]:
                     if item["type"] == "text":
-                        processed_content.append({"type": "text", "text": item["text"]})
+                        processed_content.append({"type": "input_text" if message["role"] == "user" else "output_text", "text": item["text"]})
                     elif item["type"] == "image_url":
                         processed_image = self.process_image(item)
                         processed_content.append(processed_image)
 
                         # Track total size for base64 images
-                        if processed_image["source"]["type"] == "base64":
-                            image_size = len(processed_image["source"]["data"]) * 3 / 4
-                            total_image_size += image_size
-                            if total_image_size > 100 * 1024 * 1024:  # 100MB total limit
-                                raise ValueError("Total size of images exceeds 100 MB limit")
+                        image_size = len(processed_image["image_url"]) * 3 / 4
+                        total_image_size += image_size
+                        if total_image_size > 100 * 1024 * 1024:  # 100MB total limit
+                            raise ValueError("Total size of images exceeds 100 MB limit")
             else:
-                processed_content = [{"type": "input_text" if message["role"] == "user" else "output_text", "text": message.get("content", "")}]
+                processed_content = message.get("content", "")
 
             processed_messages.append({"role": message["role"], "content": processed_content})
 
@@ -184,6 +176,10 @@ class Pipe:
                 async for event in stream:
                     if event.type == "response.output_text.delta":
                         yield event.delta
+                    elif event.type == "response.web_search_call.in_progress":
+                        yield "<think>performing web search..."
+                    elif event.type == "response.web_search_call.completed":
+                        yield "</think>"
         except Exception as e:
             print(f"General error in stream_response method: {e}")
             yield f"Error: {e}"
