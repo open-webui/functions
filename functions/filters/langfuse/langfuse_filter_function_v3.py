@@ -2,7 +2,7 @@
 title: Langfuse Filter Function v3
 author: YetheSamartaka
 date: 2025-10-27
-version: 1.0.0
+version: 1.1.0
 license: MIT
 description: A filter function that uses Langfuse v3.
 required_open_webui_version: 0.6.32
@@ -255,7 +255,7 @@ class Filter:
             return await self.inlet(body, __event_emitter__, __user__)
         assistant_message_text = _get_last_assistant_message(body["messages"])
         assistant_message_obj = _get_last_assistant_message_obj(body["messages"])
-        usage: dict[str, Any] | None = None
+        usage_details: dict[str, Any] | None = None
         if assistant_message_obj:
             info = assistant_message_obj.get("usage", {}) or {}
             if isinstance(info, dict):
@@ -270,12 +270,12 @@ class Filter:
                     or info.get("output_tokens")
                 )
                 if input_tokens is not None and output_tokens is not None:
-                    usage = {
+                    usage_details = {
                         "input": input_tokens,
                         "output": output_tokens,
                         "unit": "TOKENS",
                     }
-                    self.log(f"Usage data extracted: {usage}")
+                    self.log(f"Usage data extracted: {usage_details}")
         trace = self.chat_traces[chat_id]
         metadata["type"] = task_name
         metadata["interface"] = "open-webui"
@@ -286,11 +286,6 @@ class Filter:
             "interface": "open-webui",
             "task": task_name,
         }
-        trace.update_trace(
-            output=assistant_message_text,
-            metadata=complete_trace_metadata,
-            tags=tags_list if tags_list else None,
-        )
         model_id = self.model_names.get(chat_id, {}).get("id", body.get("model"))
         model_name = self.model_names.get(chat_id, {}).get("name", "unknown")
         model_value = (
@@ -301,7 +296,6 @@ class Filter:
         metadata["model_id"] = model_id
         metadata["model_name"] = model_name
         try:
-            trace = self.chat_traces[chat_id]
             generation_metadata = {
                 **complete_trace_metadata,
                 "type": "llm_response",
@@ -316,13 +310,20 @@ class Filter:
                 output=assistant_message_text,
                 metadata=generation_metadata,
             )
-            if usage:
-                generation.update(usage=usage)
+            if usage_details:
+                generation.update(usage_details=usage_details)
             generation.end()
-            trace.end()
             self.log(f"LLM generation completed for chat_id: {chat_id}")
         except Exception as e:
             self.log(f"Failed to create LLM generation: {e}")
+
+        trace.update_trace(
+            output=assistant_message_text,
+            metadata=complete_trace_metadata,
+            tags=tags_list if tags_list else None,
+        )
+        trace.end()
+
         try:
             if self.langfuse:
                 self.langfuse.flush()
