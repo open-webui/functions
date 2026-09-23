@@ -2,8 +2,8 @@
 
 > **Seamless integration between OpenWebUI and Anthropic's Claude models with advanced image processing**
 
-[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](https://github.com/open-webui/functions)
-[![OpenWebUI](https://img.shields.io/badge/OpenWebUI-0.3.17+-green.svg)](https://github.com/open-webui/open-webui)
+[![Version](https://img.shields.io/badge/version-0.7.2-blue.svg)](https://github.com/open-webui/functions)
+[![OpenWebUI](https://img.shields.io/badge/OpenWebUI-0.4.0+-green.svg)](https://github.com/open-webui/open-webui)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org)
 [![Anthropic](https://img.shields.io/badge/Anthropic-API-orange.svg)](https://docs.anthropic.com)
@@ -81,7 +81,7 @@
 ## 🏗️ Installation
 
 ### Prerequisites
-- OpenWebUI version 0.3.17 or higher
+- OpenWebUI version 0.4.0 or higher
 - Valid Anthropic API key with appropriate credits
 - Python environment with required dependencies
 - Administrator access to add pipes
